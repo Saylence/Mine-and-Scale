@@ -61,11 +61,24 @@ public class XpEventHandler {
     @SubscribeEvent
     public static void onPlayerClone(PlayerEvent.Clone event) {
         if (event.getEntity() instanceof ServerPlayer player && !event.isWasDeath()) {
-            return; // Если это не смерть — пропускаем
+            return; // Если это не смерть — пропускаем (так как NeoForge сохраняет аттачмент сам)
         }
 
         if (event.getEntity() instanceof ServerPlayer player) {
-            // Важно: небольшая задержка, чтобы новое тело игрока полностью инициализировалось
+            // Задержка выполнения, чтобы новое тело игрока успело полностью инициализироваться после смерти
+            player.server.execute(() -> {
+                TalentLogic.applyTalentAttributes(player);
+                syncPlayerData(player);
+            });
+        }
+    }
+
+    // НОВЫЙ ИВЕНТ: Ловит момент перехода между мирами
+    @SubscribeEvent
+    public static void onPlayerChangedDimension(PlayerEvent.PlayerChangedDimensionEvent event) {
+        if (event.getEntity() instanceof ServerPlayer player) {
+            // Выполняем в конце тика через планировщик. Это гарантирует, что клиент уже
+            // получил пакет респавна в новом мире и создал сущность игрока до отправки наших статов.
             player.server.execute(() -> {
                 TalentLogic.applyTalentAttributes(player);
                 syncPlayerData(player);

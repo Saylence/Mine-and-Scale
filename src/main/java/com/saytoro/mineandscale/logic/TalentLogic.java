@@ -36,12 +36,6 @@ public class TalentLogic {
     private static final ResourceLocation TALENT_CRIT_CHANCE = ResourceLocation.fromNamespaceAndPath(MineAndScale.MODID, "talent_crit_chance");
     private static final ResourceLocation TALENT_CRIT_DAMAGE = ResourceLocation.fromNamespaceAndPath(MineAndScale.MODID, "talent_crit_damage");
 
-    // Новые константы для талантов
-    private static final ResourceLocation TALENT_LIFESTEAL = ResourceLocation.fromNamespaceAndPath(MineAndScale.MODID, "talent_lifesteal");
-    private static final ResourceLocation TALENT_ATTACK_SPEED = ResourceLocation.fromNamespaceAndPath(MineAndScale.MODID, "talent_attack_speed");
-    private static final ResourceLocation TALENT_DODGE = ResourceLocation.fromNamespaceAndPath(MineAndScale.MODID, "talent_dodge");
-    private static final ResourceLocation TALENT_ARMOR = ResourceLocation.fromNamespaceAndPath(MineAndScale.MODID, "talent_armor");
-
     private static Holder<Attribute> getApothicAttribute(String path) {
         Attribute attr = BuiltInRegistries.ATTRIBUTE.get(ResourceLocation.fromNamespaceAndPath("apothic_attributes", path));
         return attr != null ? BuiltInRegistries.ATTRIBUTE.wrapAsHolder(attr) : null;
@@ -64,11 +58,11 @@ public class TalentLogic {
         applyModifier(player, Attributes.ATTACK_SPEED, DEX_ATTACK_SPEED, progression.getDexterity() * 0.02, AttributeModifier.Operation.ADD_MULTIPLIED_BASE);
         applyModifier(player, Attributes.MOVEMENT_SPEED, DEX_SPEED, progression.getDexterity() * 0.01, AttributeModifier.Operation.ADD_MULTIPLIED_BASE);
 
-        Holder<Attribute> MathCritChance = getApothicAttribute("crit_chance");
-        if (MathCritChance != null) applyModifier(player, MathCritChance, DEX_CRIT_CHANCE, progression.getDexterity() * 0.01, AttributeModifier.Operation.ADD_VALUE);
+        Holder<Attribute> critChance = getApothicAttribute("crit_chance");
+        if (critChance != null) applyModifier(player, critChance, DEX_CRIT_CHANCE, progression.getDexterity() * 0.01, AttributeModifier.Operation.ADD_VALUE);
 
-        Holder<Attribute> MathCritDamage = getApothicAttribute("crit_damage");
-        if (MathCritDamage != null) applyModifier(player, MathCritDamage, DEX_CRIT_DAMAGE, progression.getDexterity() * 0.03, AttributeModifier.Operation.ADD_VALUE);
+        Holder<Attribute> critDamage = getApothicAttribute("crit_damage");
+        if (critDamage != null) applyModifier(player, critDamage, DEX_CRIT_DAMAGE, progression.getDexterity() * 0.03, AttributeModifier.Operation.ADD_VALUE);
 
         Holder<Attribute> arrowDmg = getApothicAttribute("arrow_damage");
         if (arrowDmg != null) applyModifier(player, arrowDmg, DEX_RANGED, progression.getDexterity() * 0.01, AttributeModifier.Operation.ADD_VALUE);
@@ -86,31 +80,14 @@ public class TalentLogic {
         applyModifier(player, Attributes.MAX_HEALTH, VIT_HP, progression.getVitality() * 1.0, AttributeModifier.Operation.ADD_VALUE);
         applyModifier(player, Attributes.ARMOR, VIT_ARMOR, progression.getVitality() * 0.5, AttributeModifier.Operation.ADD_VALUE);
 
-        // --- ПРЯМЫЕ ТАЛАНТЫ ---
+        // --- ТАЛАНТЫ ---
         applyModifier(player, Attributes.MAX_HEALTH, TALENT_HP, progression.hasTalent("health_boost_1") ? 5.0 : 0.0, AttributeModifier.Operation.ADD_VALUE);
         applyModifier(player, Attributes.MOVEMENT_SPEED, TALENT_SPEED, progression.hasTalent("runner") ? 0.15 : 0.0, AttributeModifier.Operation.ADD_MULTIPLIED_BASE);
 
-        if (MathCritChance != null) applyModifier(player, MathCritChance, TALENT_CRIT_CHANCE, progression.hasTalent("crit_boost") ? 0.10 : 0.0, AttributeModifier.Operation.ADD_VALUE);
-        if (MathCritDamage != null) applyModifier(player, MathCritDamage, TALENT_CRIT_DAMAGE, progression.hasTalent("crit_boost") ? 0.20 : 0.0, AttributeModifier.Operation.ADD_VALUE);
+        if (critChance != null) applyModifier(player, critChance, TALENT_CRIT_CHANCE, progression.hasTalent("crit_boost") ? 0.10 : 0.0, AttributeModifier.Operation.ADD_VALUE);
+        if (critDamage != null) applyModifier(player, critDamage, TALENT_CRIT_DAMAGE, progression.hasTalent("crit_boost") ? 0.20 : 0.0, AttributeModifier.Operation.ADD_VALUE);
 
-        // === НОВЫЕ ТАЛАНТЫ ===
-        if (progression.hasTalent("bloodlust") && lifeSteal != null) {
-            applyModifier(player, lifeSteal, TALENT_LIFESTEAL, 0.08, AttributeModifier.Operation.ADD_VALUE);
-        }
-
-        if (progression.hasTalent("acrobat")) {
-            applyModifier(player, Attributes.ATTACK_SPEED, TALENT_ATTACK_SPEED, 0.20, AttributeModifier.Operation.ADD_MULTIPLIED_BASE);
-
-            if (dodgeChance != null) {
-                applyModifier(player, dodgeChance, TALENT_DODGE, 0.10, AttributeModifier.Operation.ADD_VALUE);
-            }
-        }
-
-        if (progression.hasTalent("fortress")) {
-            applyModifier(player, Attributes.MAX_HEALTH, TALENT_HP, 30.0, AttributeModifier.Operation.ADD_VALUE);
-            applyModifier(player, Attributes.ARMOR, TALENT_ARMOR, 8.0, AttributeModifier.Operation.ADD_VALUE);
-        }
-
+        // Принудительно отправляем клиенту пакет со всеми syncable-атрибутами
         if (player instanceof ServerPlayer serverPlayer) {
             serverPlayer.connection.send(new net.minecraft.network.protocol.game.ClientboundUpdateAttributesPacket(
                     serverPlayer.getId(), serverPlayer.getAttributes().getSyncableAttributes()

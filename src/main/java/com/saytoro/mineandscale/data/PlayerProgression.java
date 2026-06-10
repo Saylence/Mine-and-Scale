@@ -50,6 +50,20 @@ public class PlayerProgression implements INBTSerializable<CompoundTag> {
         this.talentPoints = value;
     }
 
+    public void setLevel(int newLevel) {
+        if (newLevel < 1) newLevel = 1;
+        this.level = newLevel;
+
+        // Пересчёт очков характеристик
+        this.statPoints = 20 + (newLevel - 1) * 3;
+
+        // Пересчёт очков талантов (1 каждые 10 уровней)
+        this.talentPoints = newLevel / 10;
+
+        // Сбрасываем таланты? (по желанию можно оставить)
+        // this.unlockedTalents.clear();
+    }
+
     public int getXpNeededForNextLevel() { return this.level * 100; }
 
     public void addXp(int amount, Player player) {

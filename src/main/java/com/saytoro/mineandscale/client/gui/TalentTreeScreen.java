@@ -26,6 +26,7 @@ public class TalentTreeScreen extends Screen {
         int centerX = this.width / 2;
         int centerY = this.height / 2;
 
+        // Вкладки
         Button tabStats = Button.builder(Component.literal("Характеристики"), b -> { activeTab = 0; this.rebuildWidgets(); })
                 .bounds(centerX - 110, centerY - 85, 105, 20).build();
         Button tabTalents = Button.builder(Component.literal("Пассивные таланты"), b -> { activeTab = 1; this.rebuildWidgets(); })
@@ -56,55 +57,69 @@ public class TalentTreeScreen extends Screen {
         }
 
         if (activeTab == 1) {
-            String[] talentIds = {
-                    "health_boost_1", "crit_boost", "runner", "double_jump",
-                    "berserker", "ninja", "tank",
-                    "bloodlust", "acrobat", "fortress"
+            int playerLevel = progression.getLevel();
+
+            // reqLevel, leftId, leftName, rightId, rightName, secondTalentUnlockLevel
+            Object[][] rows = {
+                    {10, "berserker", "+15 Силы",          "ninja",         "+15 Ловкости",          70},
+                    {20, "tank",      "+15 Выносливости",  "fortress",      "+8 Брони +30 HP",       80},
+                    {30, "bloodlust", "+8% Вампиризм",     "acrobat",       "+20% Скор. Атаки +10% Уклон", 90},
+                    {40, "crit_boost","+10% Крит +20% Крит Урон", "runner", "+15% Скор. бега",      95},
+                    {50, "health_boost_1", "+5 макс. HP",  "double_jump",  "Двойной прыжок",        100}
             };
 
-            String[] talentNames = {
-                    "+5 макс. HP",
-                    "+10% Крит, +20% Крит Урон",
-                    "+15% Скор. бега",
-                    "Двойной прыжок",
-                    "+15 Силы",
-                    "+15 Ловкости",
-                    "+15 Выносливости",
-                    "+8% Вампиризм",
-                    "+20% Скор. Атаки +10% Уклонение",
-                    "+8 Брони +30 HP"
-            };
+            int startY = centerY - 70;
 
-            int startX = centerX - 165;
-            int startY = centerY - 40;
+            for (int row = 0; row < rows.length; row++) {
+                int reqLevel = (int) rows[row][0];
+                String leftId = (String) rows[row][1];
+                String leftName = (String) rows[row][2];
+                String rightId = (String) rows[row][3];
+                String rightName = (String) rows[row][4];
+                int secondTalentLevel = (int) rows[row][5];
 
-            for (int i = 0; i < talentIds.length; i++) {
-                String tId = talentIds[i];
-                String tName = talentNames[i];
+                boolean rowUnlocked = playerLevel >= reqLevel;
+                boolean canPickSecond = playerLevel >= secondTalentLevel;
 
-                int col = i % 2;
-                int row = i / 2;
+                boolean leftUnlocked = progression.hasTalent(leftId);
+                boolean rightUnlocked = progression.hasTalent(rightId);
 
-                int x = startX + (col * 170);
-                int y = startY + (row * 24);
+                // Левый талант
+                Button leftBtn = createTalentButton(leftId, leftName, centerX - 180, startY + row * 48,
+                        rowUnlocked, leftUnlocked, rightUnlocked, canPickSecond, progression, true, reqLevel);
+                this.addRenderableWidget(leftBtn);
 
-                boolean isUnlocked = progression.hasTalent(tId);
-
-                Component btnText = Component.literal(tName);
-                Button btn = Button.builder(btnText, b -> {
-                    PacketDistributor.sendToServer(new RequestUnlockTalentPayload(tId));
-                }).bounds(x, y, 160, 20).build();
-
-                if (isUnlocked) {
-                    btn.active = false;
-                    btn.setMessage(Component.literal("§a" + tName));
-                } else {
-                    btn.active = progression.getTalentPoints() > 0;
-                }
-
-                this.addRenderableWidget(btn);
+                // Правый талант
+                Button rightBtn = createTalentButton(rightId, rightName, centerX + 20, startY + row * 48,
+                        rowUnlocked, rightUnlocked, leftUnlocked, canPickSecond, progression, false, reqLevel);
+                this.addRenderableWidget(rightBtn);
             }
         }
+    }
+
+    private Button createTalentButton(String talentId, String name, int x, int y,
+                                      boolean rowUnlocked, boolean thisUnlocked, boolean otherUnlocked,
+                                      boolean canPickSecond, PlayerProgression progression, boolean isLeft, int reqLevel) {
+
+        Button btn = Button.builder(Component.literal(name), b -> {
+            PacketDistributor.sendToServer(new RequestUnlockTalentPayload(talentId));
+        }).bounds(x, y, 160, 20).build();
+
+        if (!rowUnlocked) {
+            btn.active = false;
+            String side = isLeft ? "Левый" : "Правый";
+            btn.setMessage(Component.literal("§8[" + side + " - Ур." + reqLevel + "+]"));
+        } else if (thisUnlocked) {
+            btn.active = false;
+            btn.setMessage(Component.literal("§a" + name));
+        } else if (otherUnlocked && !canPickSecond) {
+            btn.active = false;
+            btn.setMessage(Component.literal("§7" + name));
+        } else {
+            btn.active = progression.getTalentPoints() > 0;
+        }
+
+        return btn;
     }
 
     @Override
@@ -142,13 +157,12 @@ public class TalentTreeScreen extends Screen {
 
         if (activeTab == 1) {
             guiGraphics.drawCenteredString(this.font, "Доступные очки талантов: §e" + progression.getTalentPoints(),
-                    centerX, centerY - 55, 0xFFFFFF);
+                    centerX, centerY - 125, 0xFFFFFF);
         }
 
-        // Информация об уровне — сдвинута ниже
         String xpText = String.format("Уровень %d  (%d / %d XP)",
                 progression.getLevel(), progression.getXp(), progression.getXpNeededForNextLevel());
-        guiGraphics.drawCenteredString(this.font, xpText, centerX, centerY + 95, 0xE6AA1C);
+        guiGraphics.drawCenteredString(this.font, xpText, centerX, centerY + 145, 0xE6AA1C);
     }
 
     @Override

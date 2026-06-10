@@ -14,9 +14,9 @@ import net.minecraft.server.level.ServerPlayer;
 public class SetStatsCommand {
     public static void register(CommandDispatcher<CommandSourceStack> dispatcher) {
         dispatcher.register(Commands.literal("ms")
-                .requires(source -> source.hasPermission(2)) // Защита сразу на весь корень /ms
+                .requires(source -> source.hasPermission(2))
 
-                // ВЕТКА 1: /ms stats <str> <dex> <vit>
+                // 1. /ms stats <str> <dex> <vit>
                 .then(Commands.literal("stats")
                         .then(Commands.argument("str", IntegerArgumentType.integer())
                                 .then(Commands.argument("dex", IntegerArgumentType.integer())
@@ -29,7 +29,6 @@ public class SetStatsCommand {
 
                                                     PlayerProgression p = player.getData(MineAndScale.PLAYER_PROGRESSION);
 
-                                                    // Принудительно меняем характеристики
                                                     p.setValuesFromServer(p.getLevel(), p.getXp(), p.getTalentPoints(), p.getStatPoints(), str, dex, vit, new java.util.ArrayList<>(p.getUnlockedTalents()));
 
                                                     TalentLogic.applyTalentAttributes(player);
@@ -39,22 +38,19 @@ public class SetStatsCommand {
                                                     return 1;
                                                 })))))
 
-                // ВЕТКА 2: /ms talentpoints <amount>
+                // 2. /ms talentpoints <amount>
                 .then(Commands.literal("talentpoints")
-                        .then(Commands.argument("amount", IntegerArgumentType.integer(0)) // Запрещаем отрицательные числа
+                        .then(Commands.argument("amount", IntegerArgumentType.integer(0))
                                 .executes(context -> {
                                     ServerPlayer player = context.getSource().getPlayerOrException();
                                     int amount = IntegerArgumentType.getInteger(context, "amount");
 
                                     PlayerProgression p = player.getData(MineAndScale.PLAYER_PROGRESSION);
 
-                                    // ВАЖНО: Так как мы сделали глобальное обновление стат, мы ДОЛЖНЫ использовать getBase...() методы!
-                                    // Если передать обычный getDexterity(), он вернет значение с бонусом от таланта (+10),
-                                    // и эта команда навсегда запишет этот бонус в базу как чистый стат, поломав логику.
                                     p.setValuesFromServer(
                                             p.getLevel(),
                                             p.getXp(),
-                                            amount, // Устанавливаем новое количество очков талантов
+                                            amount,
                                             p.getStatPoints(),
                                             p.getBaseStrength(),
                                             p.getBaseDexterity(),
@@ -62,12 +58,29 @@ public class SetStatsCommand {
                                             new java.util.ArrayList<>(p.getUnlockedTalents())
                                     );
 
-                                    // Пересчитываем атрибуты и отправляем пакет синхронизации на клиент
                                     TalentLogic.applyTalentAttributes(player);
                                     XpEventHandler.syncPlayerData(player);
 
                                     player.sendSystemMessage(Component.literal("§aОчки талантов обновлены! Новое значение: " + amount));
                                     return 1;
-                                }))));
+                                })))
+
+                // 3. /ms level <amount>
+                .then(Commands.literal("level")
+                        .then(Commands.argument("amount", IntegerArgumentType.integer(1))
+                                .executes(context -> {
+                                    ServerPlayer player = context.getSource().getPlayerOrException();
+                                    int targetLevel = IntegerArgumentType.getInteger(context, "amount");
+
+                                    PlayerProgression p = player.getData(MineAndScale.PLAYER_PROGRESSION);
+                                    p.setLevel(targetLevel); // Этот метод нужно добавить в PlayerProgression
+
+                                    TalentLogic.applyTalentAttributes(player);
+                                    XpEventHandler.syncPlayerData(player);
+
+                                    player.sendSystemMessage(Component.literal("§aУровень установлен на §e" + targetLevel + "§a!"));
+                                    return 1;
+                                })))
+        );
     }
 }
