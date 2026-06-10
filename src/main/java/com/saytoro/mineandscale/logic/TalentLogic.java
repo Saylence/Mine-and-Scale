@@ -46,7 +46,7 @@ public class TalentLogic {
 
         // --- СИЛА ---
         applyModifier(player, Attributes.MAX_HEALTH, STR_HP, progression.getStrength() * 0.5, AttributeModifier.Operation.ADD_VALUE);
-        applyModifier(player, Attributes.ATTACK_DAMAGE, STR_DAMAGE, progression.getStrength() * 0.5, AttributeModifier.Operation.ADD_VALUE);
+        applyModifier(player, Attributes.ATTACK_DAMAGE, STR_DAMAGE, progression.getStrength() * 0.15, AttributeModifier.Operation.ADD_VALUE);
 
         Holder<Attribute> lifeSteal = getApothicAttribute("life_steal");
         if (lifeSteal != null) applyModifier(player, lifeSteal, STR_LIFESTEAL, progression.getStrength() * 0.005, AttributeModifier.Operation.ADD_VALUE);
@@ -55,7 +55,7 @@ public class TalentLogic {
         if (armorPierce != null) applyModifier(player, armorPierce, STR_ARMOR_PIERCE, progression.getStrength() * 0.12, AttributeModifier.Operation.ADD_VALUE);
 
         // --- ЛОВКОСТЬ ---
-        applyModifier(player, Attributes.ATTACK_SPEED, DEX_ATTACK_SPEED, progression.getDexterity() * 0.02, AttributeModifier.Operation.ADD_MULTIPLIED_BASE);
+        applyModifier(player, Attributes.ATTACK_SPEED, DEX_ATTACK_SPEED, progression.getDexterity() * 0.05, AttributeModifier.Operation.ADD_MULTIPLIED_BASE);
         applyModifier(player, Attributes.MOVEMENT_SPEED, DEX_SPEED, progression.getDexterity() * 0.01, AttributeModifier.Operation.ADD_MULTIPLIED_BASE);
 
         Holder<Attribute> critChance = getApothicAttribute("crit_chance");

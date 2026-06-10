@@ -64,7 +64,7 @@ public class PlayerProgression implements INBTSerializable<CompoundTag> {
         // this.unlockedTalents.clear();
     }
 
-    public int getXpNeededForNextLevel() { return this.level * 100; }
+    public int getXpNeededForNextLevel() { return (int) (13.5 * Math.pow(this.level, 2) - 18 * this.level + 105);  }
 
     public void addXp(int amount, Player player) {
         this.xp += amount;

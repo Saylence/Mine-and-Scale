@@ -43,6 +43,11 @@ public record SyncProgressionPayload(int level, int xp, int talentPoints, int st
             if (player != null) {
                 PlayerProgression progression = player.getData(MineAndScale.PLAYER_PROGRESSION);
                 progression.setValuesFromServer(this.level, this.xp, this.talentPoints, this.statPoints, this.str, this.dex, this.vit, this.unlockedTalents);
+
+                // ИСПРАВЛЕНО: Вызываем созданный публичный метод refresh() вместо защищенного rebuildWidgets()
+                if (Minecraft.getInstance().screen instanceof com.saytoro.mineandscale.client.gui.TalentTreeScreen talentScreen) {
+                    talentScreen.refresh();
+                }
             }
         });
     }

@@ -17,6 +17,11 @@ public class TalentTreeScreen extends Screen {
         super(Component.literal("RPG Меню"));
     }
 
+    // ДОБАВЛЕНО: Метод для вызова из сети
+    public void refresh() {
+        this.rebuildWidgets();
+    }
+
     @Override
     protected void init() {
         super.init();
@@ -26,11 +31,11 @@ public class TalentTreeScreen extends Screen {
         int centerX = this.width / 2;
         int centerY = this.height / 2;
 
-        // Вкладки
+        // Вкладки управления меню
         Button tabStats = Button.builder(Component.literal("Характеристики"), b -> { activeTab = 0; this.rebuildWidgets(); })
-                .bounds(centerX - 110, centerY - 85, 105, 20).build();
+                .bounds(centerX - 110, centerY - 95, 105, 20).build();
         Button tabTalents = Button.builder(Component.literal("Пассивные таланты"), b -> { activeTab = 1; this.rebuildWidgets(); })
-                .bounds(centerX + 5, centerY - 85, 105, 20).build();
+                .bounds(centerX + 5, centerY - 95, 105, 20).build();
 
         if (activeTab == 0) tabStats.active = false;
         if (activeTab == 1) tabTalents.active = false;
@@ -38,14 +43,24 @@ public class TalentTreeScreen extends Screen {
         this.addRenderableWidget(tabStats);
         this.addRenderableWidget(tabTalents);
 
+        // --- ВКЛАДКА 0: ХАРАКТЕРИСТИКИ ---
         if (activeTab == 0) {
             boolean hasPoints = progression.getStatPoints() > 0;
-            Button plusStr = Button.builder(Component.literal("+"), b -> PacketDistributor.sendToServer(new RequestUpgradeStatPayload("strength")))
-                    .bounds(centerX + 60, centerY - 43, 20, 14).build();
-            Button plusDex = Button.builder(Component.literal("+"), b -> PacketDistributor.sendToServer(new RequestUpgradeStatPayload("dexterity")))
-                    .bounds(centerX + 60, centerY - 23, 20, 14).build();
-            Button plusVit = Button.builder(Component.literal("+"), b -> PacketDistributor.sendToServer(new RequestUpgradeStatPayload("vitality")))
-                    .bounds(centerX + 60, centerY - 3, 20, 14).build();
+
+            Button plusStr = Button.builder(Component.literal("+"), b -> {
+                b.active = false; // Мгновенно блокируем
+                PacketDistributor.sendToServer(new RequestUpgradeStatPayload("strength"));
+            }).bounds(centerX + 60, centerY - 40, 20, 14).build();
+
+            Button plusDex = Button.builder(Component.literal("+"), b -> {
+                b.active = false;
+                PacketDistributor.sendToServer(new RequestUpgradeStatPayload("dexterity"));
+            }).bounds(centerX + 60, centerY - 15, 20, 14).build();
+
+            Button plusVit = Button.builder(Component.literal("+"), b -> {
+                b.active = false;
+                PacketDistributor.sendToServer(new RequestUpgradeStatPayload("vitality"));
+            }).bounds(centerX + 60, centerY + 10, 20, 14).build();
 
             plusStr.active = hasPoints;
             plusDex.active = hasPoints;
@@ -56,19 +71,19 @@ public class TalentTreeScreen extends Screen {
             this.addRenderableWidget(plusVit);
         }
 
+        // --- ВКЛАДКА 1: ПАССИВНЫЕ ТАЛАНТЫ ---
         if (activeTab == 1) {
             int playerLevel = progression.getLevel();
 
-            // reqLevel, leftId, leftName, rightId, rightName, secondTalentUnlockLevel
             Object[][] rows = {
-                    {10, "berserker", "+15 Силы",          "ninja",         "+15 Ловкости",          70},
-                    {20, "tank",      "+15 Выносливости",  "fortress",      "+8 Брони +30 HP",       80},
-                    {30, "bloodlust", "+8% Вампиризм",     "acrobat",       "+20% Скор. Атаки +10% Уклон", 90},
-                    {40, "crit_boost","+10% Крит +20% Крит Урон", "runner", "+15% Скор. бега",      95},
-                    {50, "health_boost_1", "+5 макс. HP",  "double_jump",  "Двойной прыжок",        100}
+                    {10, "double_jump",    "Двойной прыжок",               "runner",        "+15% Скор. бега",             70},
+                    {20, "berserker",      "+15 Силы",                     "ninja",         "+15 Ловкости",                80},
+                    {30, "tank",           "+15 Выносливости",             "health_boost_1","+5 макс. HP",                 90},
+                    {40, "bloodlust",      "+8% Вампиризм",                "acrobat",       "+20% Скор. Атаки +10% Уклон", 95},
+                    {50, "fortress",       "+8 Брони +30 HP",              "crit_boost",    "+10% Крит +20% Крит Урон",    100}
             };
 
-            int startY = centerY - 70;
+            int startY = centerY - 65;
 
             for (int row = 0; row < rows.length; row++) {
                 int reqLevel = (int) rows[row][0];
@@ -84,13 +99,11 @@ public class TalentTreeScreen extends Screen {
                 boolean leftUnlocked = progression.hasTalent(leftId);
                 boolean rightUnlocked = progression.hasTalent(rightId);
 
-                // Левый талант
-                Button leftBtn = createTalentButton(leftId, leftName, centerX - 180, startY + row * 48,
+                Button leftBtn = createTalentButton(leftId, leftName, centerX - 170, startY + row * 24,
                         rowUnlocked, leftUnlocked, rightUnlocked, canPickSecond, progression, true, reqLevel);
                 this.addRenderableWidget(leftBtn);
 
-                // Правый талант
-                Button rightBtn = createTalentButton(rightId, rightName, centerX + 20, startY + row * 48,
+                Button rightBtn = createTalentButton(rightId, rightName, centerX + 10, startY + row * 24,
                         rowUnlocked, rightUnlocked, leftUnlocked, canPickSecond, progression, false, reqLevel);
                 this.addRenderableWidget(rightBtn);
             }
@@ -102,6 +115,7 @@ public class TalentTreeScreen extends Screen {
                                       boolean canPickSecond, PlayerProgression progression, boolean isLeft, int reqLevel) {
 
         Button btn = Button.builder(Component.literal(name), b -> {
+            b.active = false; // Мгновенно блокируем
             PacketDistributor.sendToServer(new RequestUnlockTalentPayload(talentId));
         }).bounds(x, y, 160, 20).build();
 
@@ -146,29 +160,28 @@ public class TalentTreeScreen extends Screen {
                     centerX - 100, centerY - 65, 0xFFFFFF);
 
             guiGraphics.drawString(this.font, "Сила: §a" + baseStr + " §7(+" + (effStr - baseStr) + ")",
-                    centerX - 100, centerY - 45, 0xFFFFFF);
+                    centerX - 100, centerY - 37, 0xFFFFFF);
 
             guiGraphics.drawString(this.font, "Ловкость: §a" + baseDex + " §7(+" + (effDex - baseDex) + ")",
-                    centerX - 100, centerY - 25, 0xFFFFFF);
+                    centerX - 100, centerY - 12, 0xFFFFFF);
 
             guiGraphics.drawString(this.font, "Выносливость: §a" + baseVit + " §7(+" + (effVit - baseVit) + ")",
-                    centerX - 100, centerY - 5, 0xFFFFFF);
+                    centerX - 100, centerY + 13, 0xFFFFFF);
         }
 
         if (activeTab == 1) {
             guiGraphics.drawCenteredString(this.font, "Доступные очки талантов: §e" + progression.getTalentPoints(),
-                    centerX, centerY - 125, 0xFFFFFF);
+                    centerX, centerY - 115, 0xFFFFFF);
         }
 
         String xpText = String.format("Уровень %d  (%d / %d XP)",
                 progression.getLevel(), progression.getXp(), progression.getXpNeededForNextLevel());
-        guiGraphics.drawCenteredString(this.font, xpText, centerX, centerY + 145, 0xE6AA1C);
+        guiGraphics.drawCenteredString(this.font, xpText, centerX, centerY + 65, 0xE6AA1C);
     }
 
     @Override
     public void tick() {
         super.tick();
-        this.rebuildWidgets();
     }
 
     @Override
